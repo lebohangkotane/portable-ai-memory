@@ -385,5 +385,81 @@ def init(
     console.print("  3. Run: pam list memories")
 
 
+# --- MCP command ---
+
+@app.command()
+def mcp(
+    vault_path: Optional[Path] = typer.Option(None, "--vault"),
+):
+    """Start the PAM MCP server for Claude Desktop integration."""
+    import asyncio
+    from pam.mcp.server import main as mcp_main
+
+    console.print("[bold green]PAM MCP Server starting...[/bold green]")
+    console.print("Add to Claude Desktop config:")
+    console.print(f'  "pam": {{"command": "python", "args": ["-m", "pam.mcp.server"]}}')
+    console.print("\n[dim]Listening on stdio...[/dim]")
+    asyncio.run(mcp_main())
+
+
+# --- Claude Desktop setup command ---
+
+@app.command()
+def setup_claude(
+    vault_path: Optional[Path] = typer.Option(None, "--vault"),
+):
+    """Generate Claude Desktop config to connect PAM as an MCP server."""
+    import json
+    import sys
+
+    project_dir = Path(__file__).parent.parent.parent.resolve()
+
+    config = {
+        "mcpServers": {
+            "pam": {
+                "command": sys.executable,
+                "args": ["-m", "pam.mcp.server"],
+                "cwd": str(project_dir),
+            }
+        }
+    }
+
+    # Common Claude Desktop config paths
+    import platform
+    if platform.system() == "Windows":
+        config_path = Path.home() / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json"
+    elif platform.system() == "Darwin":
+        config_path = Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+    else:
+        config_path = Path.home() / ".config" / "Claude" / "claude_desktop_config.json"
+
+    console.print(Panel(
+        f"[bold]Claude Desktop MCP Config[/bold]\n\n"
+        f"Add this to:\n[cyan]{config_path}[/cyan]\n\n"
+        + json.dumps(config, indent=2),
+        title="Claude Desktop Setup",
+        box=box.ROUNDED,
+    ))
+
+    if typer.confirm(f"\nAuto-write to {config_path}?"):
+        # Merge with existing config if it exists
+        existing = {}
+        if config_path.exists():
+            try:
+                existing = json.loads(config_path.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+
+        existing.setdefault("mcpServers", {})
+        existing["mcpServers"]["pam"] = config["mcpServers"]["pam"]
+
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text(json.dumps(existing, indent=2), encoding="utf-8")
+        console.print(f"[green]Written to {config_path}[/green]")
+        console.print("[yellow]Restart Claude Desktop to activate PAM.[/yellow]")
+    else:
+        console.print("\nCopy the config above manually.")
+
+
 if __name__ == "__main__":
     app()
