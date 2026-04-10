@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://portablememory.dev/schema/v1",
+  "title": "Portable AI Memory Interchange Format",
+  "description": "Universal schema for AI conversation and memory portability across platforms",
+  "type": "object",
+  "required": ["schema_version", "vault_id", "memories", "conversations"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "vault_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "owner": {
+      "$ref": "#/$defs/Owner"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "memories": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Memory"
+      }
+    },
+    "conversations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Conversation"
+      }
+    },
+    "preferences": {
+      "$ref": "#/$defs/UserPreferences"
+    }
+  },
+  "$defs": {
+    "Owner": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "display_name": { "type": "string" }
+      }
+    },
+    "Memory": {
+      "type": "object",
+      "required": ["id", "type", "content", "provenance"],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "type": {
+          "type": "string",
+          "enum": ["fact", "preference", "skill", "goal", "relationship", "instruction", "context", "identity", "episode", "reflection"]
+        },
+        "content": { "type": "string", "minLength": 1 },
+        "content_hash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "confidence": {
+          "type": "object",
+          "properties": {
+            "score": { "type": "number", "minimum": 0, "maximum": 1 },
+            "decay_model": { "type": "string", "enum": ["exponential", "linear", "none"] },
+            "last_reinforced": { "type": "string", "format": "date-time" }
+          }
+        },
+        "temporal": {
+          "type": "object",
+          "properties": {
+            "created_at": { "type": "string", "format": "date-time" },
+            "valid_from": { "type": ["string", "null"], "format": "date-time" },
+            "valid_to": { "type": ["string", "null"], "format": "date-time" },
+            "superseded_by": { "type": ["string", "null"] }
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "required": ["platform"],
+          "properties": {
+            "platform": {
+              "type": "string",
+              "enum": ["chatgpt", "claude", "gemini", "copilot", "grok", "manual", "other"]
+            },
+            "conversation_id": { "type": ["string", "null"] },
+            "extraction_method": { "type": "string", "enum": ["llm", "heuristic", "manual"] },
+            "original_message_id": { "type": ["string", "null"] }
+          }
+        },
+        "access_control": {
+          "type": "object",
+          "properties": {
+            "share_with": { "type": "array", "items": { "type": "string" } },
+            "deny_to": { "type": "array", "items": { "type": "string" } },
+            "sensitivity": { "type": "string", "enum": ["public", "private", "sensitive"] }
+          }
+        },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "relations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["target_id", "relation_type"],
+            "properties": {
+              "target_id": { "type": "string" },
+              "relation_type": { "type": "string", "enum": ["contradicts", "supersedes", "supports", "related_to"] }
+            }
+          }
+        },
+        "embedding": {
+          "type": ["array", "null"],
+          "items": { "type": "number" }
+        }
+      }
+    },
+    "Conversation": {
+      "type": "object",
+      "required": ["id", "source_platform", "messages"],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "source_platform": {
+          "type": "string",
+          "enum": ["chatgpt", "claude", "gemini", "copilot", "grok", "manual", "other"]
+        },
+        "source_id": { "type": ["string", "null"] },
+        "title": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" },
+        "model": { "type": ["string", "null"] },
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Message"
+          }
+        }
+      }
+    },
+    "Message": {
+      "type": "object",
+      "required": ["id", "role", "content"],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "source_id": { "type": ["string", "null"] },
+        "role": { "type": "string", "enum": ["user", "assistant", "system", "tool"] },
+        "content": { "type": "string" },
+        "content_parts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": { "type": "string", "enum": ["text", "image", "code", "file"] },
+              "data": { "type": "string" }
+            }
+          }
+        },
+        "created_at": { "type": "string", "format": "date-time" },
+        "metadata": { "type": "object" }
+      }
+    },
+    "UserPreferences": {
+      "type": "object",
+      "properties": {
+        "communication_style": { "type": "string" },
+        "expertise_areas": { "type": "array", "items": { "type": "string" } },
+        "language": { "type": "string" },
+        "custom": { "type": "object" }
+      }
+    }
+  }
+}
