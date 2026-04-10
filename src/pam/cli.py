@@ -31,6 +31,7 @@ from pam.context.privacy import PrivacyConfig
 # Import adapters to trigger registration
 import pam.adapters.chatgpt  # noqa: F401
 import pam.adapters.claude  # noqa: F401
+import pam.adapters.copilot  # noqa: F401
 
 from pam.adapters.base import get_adapter, auto_detect_adapter, list_adapters
 from pam.memory.extractor import extract_memories_heuristic
@@ -53,7 +54,7 @@ def _get_db(vault_path: Path | None = None) -> VaultDB:
 
 # --- Import command ---
 
-@app.command()
+@app.command(name="import")
 def import_data(
     platform: str = typer.Argument(
         help="Platform to import from (chatgpt, claude, auto)"
@@ -96,7 +97,7 @@ def import_data(
         console.print(Panel(
             f"Platform: {meta.get('platform', 'unknown')}\n"
             f"Conversations: {meta.get('total_conversations', '?')}\n"
-            f"Date range: {meta.get('date_range', {}).get('earliest', '?')} → "
+            f"Date range: {meta.get('date_range', {}).get('earliest', '?')} to "
             f"{meta.get('date_range', {}).get('latest', '?')}",
             title="Export Info",
             box=box.ROUNDED,
