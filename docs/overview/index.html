@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PAM — Portable AI Memory</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      line-height: 1.6;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #1a1f2e 0%, #0f1117 60%);
+      border-bottom: 1px solid #1e293b;
+      padding: 64px 40px 48px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: #1e40af22;
+      border: 1px solid #3b82f6;
+      color: #60a5fa;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: 52px;
+      font-weight: 800;
+      background: linear-gradient(90deg, #60a5fa, #a78bfa, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+      letter-spacing: -1px;
+    }
+    .hero-sub {
+      font-size: 20px;
+      color: #94a3b8;
+      max-width: 620px;
+      margin: 0 auto 32px;
+    }
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .stat {
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 32px;
+      font-weight: 800;
+      color: #60a5fa;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* ── SECTIONS ── */
+    .section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 64px 40px;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #60a5fa;
+      margin-bottom: 12px;
+    }
+    .section-heading {
+      font-size: 36px;
+      font-weight: 800;
+      color: #f1f5f9;
+      margin-bottom: 16px;
+      letter-spacing: -0.5px;
+    }
+    .section-desc {
+      font-size: 17px;
+      color: #94a3b8;
+      max-width: 680px;
+      margin-bottom: 48px;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid #1e293b;
+    }
+
+    /* ── PROBLEM / SOLUTION ── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .card {
+      background: #1a1f2e;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 28px;
+    }
+    .card.bad { border-color: #7f1d1d44; }
+    .card.good { border-color: #14532d44; }
+    .card-icon { font-size: 28px; margin-bottom: 12px; }
+    .card h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+    .card.bad h3 { color: #f87171; }
+    .card.good h3 { color: #34d399; }
+    .card p { color: #94a3b8; font-size: 15px; }
+    .card ul { color: #94a3b8; font-size: 15px; padding-left: 18px; }
+    .card ul li { margin-bottom: 6px; }
+
+    /* ── ARCHITECTURE DIAGRAM ── */
+    .diagram {
+      background: #0d1117;
+      border: 1px solid #1e293b;
+      border-radius: 20px;
+      padding: 40px;
+      overflow-x: auto;
+    }
+    .arch {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      min-width: 700px;
+    }
+
+    /* Row */
+    .arch-row {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      gap: 0;
+    }
+
+    /* Source platform pills */
+    .sources {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 0;
+    }
+    .source-pill {
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      border: 1px solid;
+    }
+    .source-pill.chatgpt  { background: #1a2e1a; border-color: #22c55e; color: #4ade80; }
+    .source-pill.claude   { background: #2e1a1a; border-color: #f97316; color: #fb923c; }
+    .source-pill.copilot  { background: #1a1f2e; border-color: #60a5fa; color: #93c5fd; }
+    .source-pill.gemini   { background: #2e2a1a; border-color: #fbbf24; color: #fcd34d; }
+    .source-pill.more     { background: #1e1e2e; border-color: #6366f1; color: #a5b4fc; }
+
+    /* Arrow down */
+    .arrow-down {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 40px;
+      color: #334155;
+      font-size: 22px;
+    }
+    .arrow-label {
+      font-size: 11px;
+      color: #475569;
+      text-align: center;
+      margin-top: -8px;
+      margin-bottom: 4px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* Layer boxes */
+    .layer {
+      border-radius: 14px;
+      padding: 18px 28px;
+      border: 1px solid;
+      text-align: center;
+      min-width: 320px;
+    }
+    .layer-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .layer-desc {
+      font-size: 12px;
+      opacity: 0.7;
+    }
+
+    .layer.adapters  { background: #0f2a1a; border-color: #22c55e33; }
+    .layer.adapters .layer-title { color: #4ade80; }
+
+    .layer.vault     { background: #1a0f2e; border-color: #a78bfa33; }
+    .layer.vault .layer-title { color: #c4b5fd; }
+
+    .layer.engine    { background: #0f1a2e; border-color: #60a5fa33; }
+    .layer.engine .layer-title { color: #93c5fd; }
+
+    .layer.context   { background: #2e1a0f; border-color: #f9731633; }
+    .layer.context .layer-title { color: #fb923c; }
+
+    /* Delivery row */
+    .delivery {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+    }
+    .delivery-box {
+      border-radius: 12px;
+      padding: 14px 20px;
+      border: 1px solid;
+      text-align: center;
+      flex: 1;
+      max-width: 180px;
+    }
+    .delivery-box .d-icon { font-size: 22px; margin-bottom: 6px; }
+    .delivery-box .d-title { font-size: 13px; font-weight: 700; }
+    .delivery-box .d-sub   { font-size: 11px; opacity: 0.6; margin-top: 2px; }
+    .delivery-box.mcp  { background: #1a2e1a; border-color: #22c55e44; }
+    .delivery-box.mcp .d-title { color: #4ade80; }
+    .delivery-box.ext  { background: #2e1a1a; border-color: #f9731644; }
+    .delivery-box.ext .d-title { color: #fb923c; }
+    .delivery-box.cli  { background: #1a1f2e; border-color: #60a5fa44; }
+    .delivery-box.cli .d-title { color: #93c5fd; }
+
+    /* ── PHASE TIMELINE ── */
+    .phases {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    .phase-card {
+      background: #1a1f2e;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .phase-card.active {
+      border-color: #3b82f6;
+      background: #1a1f2e;
+    }
+    .phase-card.active::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #3b82f6, #a78bfa);
+    }
+    .phase-num {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #475569;
+      margin-bottom: 8px;
+    }
+    .phase-card.active .phase-num { color: #60a5fa; }
+    .phase-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 12px;
+    }
+    .phase-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 10px;
+      margin-bottom: 14px;
+    }
+    .phase-badge.done    { background: #14532d44; color: #4ade80; border: 1px solid #22c55e33; }
+    .phase-badge.next    { background: #1e3a5f44; color: #93c5fd; border: 1px solid #3b82f633; }
+    .phase-badge.planned { background: #1e1e2e; color: #6366f1; border: 1px solid #6366f133; }
+    .phase-items {
+      list-style: none;
+      font-size: 13px;
+      color: #64748b;
+    }
+    .phase-items li { margin-bottom: 5px; }
+    .phase-items li::before { content: '○ '; }
+    .phase-items li.done { color: #94a3b8; }
+    .phase-items li.done::before { content: '✓ '; color: #4ade80; }
+
+    /* ── WHAT WAS BUILT ── */
+    .built-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .built-card {
+      background: #1a1f2e;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .built-card-icon { font-size: 24px; margin-bottom: 10px; }
+    .built-card-title { font-size: 14px; font-weight: 700; color: #e2e8f0; margin-bottom: 6px; }
+    .built-card-desc  { font-size: 13px; color: #64748b; }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 32px;
+      color: #334155;
+      font-size: 13px;
+      border-top: 1px solid #1e293b;
+    }
+
+    @media (max-width: 768px) {
+      .two-col { grid-template-columns: 1fr; }
+      .phases  { grid-template-columns: 1fr 1fr; }
+      .built-grid { grid-template-columns: 1fr 1fr; }
+      .hero h1 { font-size: 36px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════
+     HERO
+══════════════════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-badge">Open Source · Local First · User Owned</div>
+  <h1>Portable AI Memory</h1>
+  <p class="hero-sub">
+    Your AI relationships shouldn't reset every time you switch platforms.
+    PAM is your personal memory vault — import from any AI, use with any AI.
+  </p>
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-num">407</div>
+      <div class="stat-label">Conversations Imported</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">8,622</div>
+      <div class="stat-label">Messages Stored</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">737</div>
+      <div class="stat-label">Memories Extracted</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">3</div>
+      <div class="stat-label">Platforms Supported</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">32</div>
+      <div class="stat-label">Tests Passing</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     THE PROBLEM
+══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">The Problem</div>
+  <div class="section-heading">Your AI memory is locked in a walled garden</div>
+  <p class="section-desc">
+    Every conversation you have with an AI builds context — your preferences, skills, goals, style.
+    But that context is trapped. Switch platforms and you start from zero.
+  </p>
+
+  <div class="two-col">
+    <div class="card bad">
+      <div class="card-icon">🔒</div>
+      <h3>Without PAM — Today's Reality</h3>
+      <ul>
+        <li>ChatGPT, Claude, Copilot — all siloed</li>
+        <li>Switch platform = lose all context</li>
+        <li>Rebuild your "relationship" from scratch</li>
+        <li>No standard way to move your memory</li>
+        <li>You don't own your conversation history</li>
+        <li>Vendors benefit from locking you in</li>
+      </ul>
+    </div>
+    <div class="card good">
+      <div class="card-icon">🔓</div>
+      <h3>With PAM — The Vision</h3>
+      <ul>
+        <li>One encrypted vault you own locally</li>
+        <li>Import from any AI platform</li>
+        <li>Carry your context to any new AI</li>
+        <li>Universal open schema — no lock-in</li>
+        <li>Per-platform privacy controls</li>
+        <li>Like email portability, but for AI</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<hr class="divider" />
+
+<!-- ══════════════════════════════════════════════
+     HOW IT WORKS — DIAGRAM
+══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Architecture</div>
+  <div class="section-heading">How the system works</div>
+  <p class="section-desc">
+    5 layers: data comes in from any AI platform, gets stored in your encrypted vault,
+    intelligence is applied, privacy rules are enforced, then context is delivered to whichever AI you're using.
+  </p>
+
+  <div class="diagram">
+    <div class="arch">
+
+      <!-- LAYER 0: Source platforms -->
+      <div class="sources">
+        <div class="source-pill chatgpt">💬 ChatGPT</div>
+        <div class="source-pill claude">🟠 Claude</div>
+        <div class="source-pill copilot">🔵 Copilot</div>
+        <div class="source-pill gemini">🟡 Gemini</div>
+        <div class="source-pill more">+ More</div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="arrow-down">↓</div>
+      <div class="arrow-label">Export ZIP / JSON / CSV</div>
+
+      <!-- LAYER 1: Import Adapters -->
+      <div style="display:flex;justify-content:center;">
+        <div class="layer adapters">
+          <div class="layer-title">① Import Adapters</div>
+          <div class="layer-desc">Platform-specific parsers — normalize any export into the universal schema. Auto-detection, ZIP/JSON/CSV support.</div>
+        </div>
+      </div>
+
+      <div class="arrow-down">↓</div>
+      <div class="arrow-label">Normalized conversations</div>
+
+      <!-- LAYER 2: Vault -->
+      <div style="display:flex;justify-content:center;">
+        <div class="layer vault">
+          <div class="layer-title">② Encrypted Vault · SQLite + AES-256</div>
+          <div class="layer-desc">Local-first encrypted database. Stores conversations, messages, and extracted memories. You hold the key. Zero cloud dependency.</div>
+        </div>
+      </div>
+
+      <div class="arrow-down">↓</div>
+      <div class="arrow-label">Raw conversations → structured memories</div>
+
+      <!-- LAYER 3: Memory Engine -->
+      <div style="display:flex;justify-content:center;">
+        <div class="layer engine">
+          <div class="layer-title">③ Memory Engine</div>
+          <div class="layer-desc">Extracts facts, preferences, skills, goals from conversations. Generates local embeddings for semantic search. Scores by confidence and recency.</div>
+        </div>
+      </div>
+
+      <div class="arrow-down">↓</div>
+      <div class="arrow-label">Query → ranked memories</div>
+
+      <!-- LAYER 4: Context Builder -->
+      <div style="display:flex;justify-content:center;">
+        <div class="layer context">
+          <div class="layer-title">④ Context Builder + Privacy Filter</div>
+          <div class="layer-desc">Applies per-platform access rules (DENY ALL by default). Fits context within token budget. Formats output for the target AI.</div>
+        </div>
+      </div>
+
+      <div class="arrow-down">↓</div>
+      <div class="arrow-label">Injected context</div>
+
+      <!-- LAYER 5: Delivery -->
+      <div class="delivery">
+        <div class="delivery-box mcp">
+          <div class="d-icon">🔌</div>
+          <div class="d-title">MCP Server</div>
+          <div class="d-sub">Claude Desktop · Cursor · Windsurf</div>
+        </div>
+        <div class="delivery-box ext">
+          <div class="d-icon">🌐</div>
+          <div class="d-title">Browser Extension</div>
+          <div class="d-sub">ChatGPT Web · Gemini Web</div>
+        </div>
+        <div class="delivery-box cli">
+          <div class="d-icon">⌨️</div>
+          <div class="d-title">CLI / API</div>
+          <div class="d-sub">pam import · search · list · export</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<hr class="divider" />
+
+<!-- ══════════════════════════════════════════════
+     WHAT WAS BUILT IN PHASE 1
+══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Phase 1 — What Was Built</div>
+  <div class="section-heading">The foundation is done</div>
+  <p class="section-desc">
+    Phase 1 is the complete data layer — everything needed to ingest, store, search, and protect your AI memory.
+    Validated against 407 real Copilot conversations.
+  </p>
+
+  <div class="built-grid">
+    <div class="built-card">
+      <div class="built-card-icon">📐</div>
+      <div class="built-card-title">Universal Schema v1</div>
+      <div class="built-card-desc">Open JSON Schema defining memories, conversations, messages. 10 memory types. Platform-agnostic. Portable across any future AI.</div>
+    </div>
+    <div class="built-card">
+      <div class="built-card-icon">🔐</div>
+      <div class="built-card-title">Encrypted SQLite Vault</div>
+      <div class="built-card-desc">AES-256 encryption at rest. Zero cloud dependency. Full CRUD for conversations and memories. WAL mode for performance.</div>
+    </div>
+    <div class="built-card">
+      <div class="built-card-icon">🔌</div>
+      <div class="built-card-title">3 Import Adapters</div>
+      <div class="built-card-desc">ChatGPT (ZIP/JSON), Claude (JSON), Microsoft Copilot (CSV). Auto-detection. Plug-in interface to add new platforms in one file.</div>
+    </div>
+    <div class="built-card">
+      <div class="built-card-icon">🧠</div>
+      <div class="built-card-title">Memory Extraction Engine</div>
+      <div class="built-card-desc">Heuristic pattern matching pulls facts, preferences, skills, goals, and instructions from raw conversations. LLM extraction ready for Phase 2.</div>
+    </div>
+    <div class="built-card">
+      <div class="built-card-icon">🔍</div>
+      <div class="built-card-title">Semantic Search</div>
+      <div class="built-card-desc">Local sentence-transformer embeddings (no API key). Combined semantic + keyword scoring. Works fully offline.</div>
+    </div>
+    <div class="built-card">
+      <div class="built-card-icon">🛡️</div>
+      <div class="built-card-title">Privacy Controls</div>
+      <div class="built-card-desc">DENY ALL by default. Per-platform rules — Claude can see your skills, but not your sensitive memories. Memory-level access control.</div>
+    </div>
+    <div class="built-card">
+      <div class="built-card-icon">⌨️</div>
+      <div class="built-card-title">CLI Interface</div>
+      <div class="built-card-desc"><code>pam import</code>, <code>pam search</code>, <code>pam list</code>, <code>pam stats</code>, <code>pam export</code>. Rich terminal UI. Works on Windows, Mac, Linux.</div>
+    </div>
+    <div class="built-card">
+      <div class="built-card-icon">🧪</div>
+      <div class="built-card-title">32 Passing Tests</div>
+      <div class="built-card-desc">Vault CRUD, adapter detection & parsing, memory extraction accuracy, privacy filter enforcement. Zero warnings. CI-ready.</div>
+    </div>
+    <div class="built-card">
+      <div class="built-card-icon">📦</div>
+      <div class="built-card-title">Open Source on GitHub</div>
+      <div class="built-card-desc">Apache 2.0 licence. github.com/lebohangkotane/portable-ai-memory. First PR merged. Ready for contributors.</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider" />
+
+<!-- ══════════════════════════════════════════════
+     PHASE ROADMAP
+══════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Roadmap</div>
+  <div class="section-heading">Where we're going</div>
+  <p class="section-desc">4 phases from CLI tool to full product. Phase 1 is shipped and validated.</p>
+
+  <div class="phases">
+    <div class="phase-card active">
+      <div class="phase-num">Phase 1 · Weeks 1–4</div>
+      <div class="phase-title">Foundation</div>
+      <div class="phase-badge done">✓ Complete</div>
+      <ul class="phase-items">
+        <li class="done">Universal schema v1</li>
+        <li class="done">Encrypted SQLite vault</li>
+        <li class="done">ChatGPT adapter</li>
+        <li class="done">Claude adapter</li>
+        <li class="done">Copilot adapter</li>
+        <li class="done">Memory extraction</li>
+        <li class="done">Semantic search</li>
+        <li class="done">CLI + privacy controls</li>
+      </ul>
+    </div>
+
+    <div class="phase-card">
+      <div class="phase-num">Phase 2 · Weeks 5–8</div>
+      <div class="phase-title">AI Integration</div>
+      <div class="phase-badge next">▶ Next</div>
+      <ul class="phase-items">
+        <li>MCP server for Claude Desktop</li>
+        <li>search_memory tool</li>
+        <li>get_context tool</li>
+        <li>LLM-based extraction</li>
+        <li>Token budget manager</li>
+        <li>Local web UI</li>
+      </ul>
+    </div>
+
+    <div class="phase-card">
+      <div class="phase-num">Phase 3 · Weeks 9–14</div>
+      <div class="phase-title">Cross-Platform</div>
+      <div class="phase-badge planned">Planned</div>
+      <ul class="phase-items">
+        <li>Chrome browser extension</li>
+        <li>ChatGPT web injection</li>
+        <li>Gemini adapter</li>
+        <li>Grok adapter</li>
+        <li>Memory conflict resolution</li>
+        <li>Temporal reasoning</li>
+      </ul>
+    </div>
+
+    <div class="phase-card">
+      <div class="phase-num">Phase 4 · Weeks 15–22</div>
+      <div class="phase-title">Product</div>
+      <div class="phase-badge planned">Planned</div>
+      <ul class="phase-items">
+        <li>Tauri desktop app</li>
+        <li>React UI</li>
+        <li>Memory graph view</li>
+        <li>E2E encrypted cloud sync</li>
+        <li>Memory decay engine</li>
+        <li>Publish open spec (RFC)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<footer>
+  PAM — Portable AI Memory &nbsp;·&nbsp; Apache 2.0 &nbsp;·&nbsp;
+  <a href="https://github.com/lebohangkotane/portable-ai-memory" style="color:#60a5fa;">github.com/lebohangkotane/portable-ai-memory</a>
+</footer>
+
+</body>
+</html>
