@@ -129,10 +129,25 @@ TOOL_GET_VAULT_STATS = {
     },
 }
 
+TOOL_GET_COMPACT_PROFILE = {
+    "name": "get_compact_profile",
+    "description": (
+        "Get a short (2-3 sentence) summary of who the user is. "
+        "Prefer this over get_user_profile when you only need a quick orientation — "
+        "it uses far fewer tokens."
+    ),
+    "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+    },
+}
+
 ALL_TOOLS = [
     TOOL_SEARCH_MEMORY,
     TOOL_GET_CONTEXT,
     TOOL_ADD_MEMORY,
     TOOL_GET_USER_PROFILE,
+    TOOL_GET_COMPACT_PROFILE,
     TOOL_GET_VAULT_STATS,
 ]

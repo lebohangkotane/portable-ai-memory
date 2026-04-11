@@ -32,9 +32,10 @@ from pam.context.privacy import PrivacyConfig
 import pam.adapters.chatgpt  # noqa: F401
 import pam.adapters.claude  # noqa: F401
 import pam.adapters.copilot  # noqa: F401
+import pam.adapters.gemini  # noqa: F401
 
 from pam.adapters.base import get_adapter, auto_detect_adapter, list_adapters
-from pam.memory.extractor import extract_memories_heuristic
+from pam.memory.extractor import extract_memories_heuristic, extract_memories_llm_sync
 
 console = Console()
 app = typer.Typer(
@@ -57,11 +58,15 @@ def _get_db(vault_path: Path | None = None) -> VaultDB:
 @app.command(name="import")
 def import_data(
     platform: str = typer.Argument(
-        help="Platform to import from (chatgpt, claude, auto)"
+        help="Platform to import from (chatgpt, claude, copilot, gemini, auto)"
     ),
-    file: Path = typer.Argument(help="Path to the export file (ZIP or JSON)"),
+    file: Path = typer.Argument(help="Path to the export file (ZIP, JSON, or CSV)"),
     extract_memories: bool = typer.Option(
         True, "--extract/--no-extract", help="Extract memories from conversations"
+    ),
+    use_llm: bool = typer.Option(
+        False, "--llm/--no-llm",
+        help="Use Claude Haiku for higher-quality memory extraction (requires ANTHROPIC_API_KEY)",
     ),
     vault_path: Optional[Path] = typer.Option(None, "--vault", help="Custom vault path"),
 ):
@@ -117,7 +122,12 @@ def import_data(
                 conv_count += 1
 
                 if extract_memories:
-                    memories = extract_memories_heuristic(conversation)
+                    if use_llm:
+                        memories = extract_memories_llm_sync(conversation)
+                        if not memories:
+                            memories = extract_memories_heuristic(conversation)
+                    else:
+                        memories = extract_memories_heuristic(conversation)
                     for mem in memories:
                         db.insert_memory(mem)
                         mem_count += 1
@@ -459,6 +469,26 @@ def setup_claude(
         console.print("[yellow]Restart Claude Desktop to activate PAM.[/yellow]")
     else:
         console.print("\nCopy the config above manually.")
+
+
+# --- API server command ---
+
+@app.command()
+def api(
+    port: int = typer.Option(8765, "--port", help="Port to listen on"),
+    host: str = typer.Option("127.0.0.1", "--host", help="Host to bind to"),
+    vault_path: Optional[Path] = typer.Option(None, "--vault", help="Custom vault path"),
+):
+    """Start the PAM local HTTP API server (required for browser extension)."""
+    try:
+        import uvicorn
+    except ImportError:
+        console.print("[red]uvicorn not installed. Run: pip install 'pam[full]'[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"[bold green]PAM API server starting on http://{host}:{port}[/bold green]")
+    console.print("[dim]Press Ctrl+C to stop[/dim]")
+    uvicorn.run("pam.api.server:app", host=host, port=port, reload=False)
 
 
 if __name__ == "__main__":

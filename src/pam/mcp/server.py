@@ -25,6 +25,7 @@ from pathlib import Path
 import mcp.server.stdio
 import mcp.types as types
 from mcp.server import Server
+from mcp.server.lowlevel.server import NotificationOptions
 from mcp.server.models import InitializationOptions
 
 # ── PAM imports ──────────────────────────────────────────────────────────────
@@ -32,11 +33,12 @@ from mcp.server.models import InitializationOptions
 import pam.adapters.chatgpt  # noqa: F401
 import pam.adapters.claude   # noqa: F401
 import pam.adapters.copilot  # noqa: F401
+import pam.adapters.gemini   # noqa: F401
 
 from pam.config import DEFAULT_VAULT_PATH, DEFAULT_TOKEN_BUDGET
 from pam.context.builder import build_context
 from pam.context.privacy import PrivacyConfig
-from pam.mcp.tools import ALL_TOOLS
+from pam.mcp.tools import ALL_TOOLS, TOOL_GET_COMPACT_PROFILE
 from pam.vault.database import VaultDB
 from pam.vault.models import (
     Confidence,
@@ -100,6 +102,8 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
             result = await _handle_get_user_profile(arguments)
         elif name == "get_vault_stats":
             result = await _handle_get_vault_stats(arguments)
+        elif name == "get_compact_profile":
+            result = await _handle_get_compact_profile(arguments)
         else:
             result = f"Unknown tool: {name}"
 
@@ -320,6 +324,28 @@ async def _handle_get_vault_stats(args: dict) -> str:
     )
 
 
+async def _handle_get_compact_profile(args: dict) -> str:
+    db = _get_db()
+    privacy = _get_privacy()
+    all_memories = privacy.filter_memories(db.list_memories(limit=500), "claude")
+
+    skills = [m.content[:80] for m in all_memories if m.type.value == "skill"][:3]
+    goals = [m.content[:80] for m in all_memories if m.type.value == "goal"][:2]
+    prefs = [m.content[:80] for m in all_memories if m.type.value == "preference"][:2]
+    stats = db.get_stats()
+
+    parts = []
+    if skills:
+        parts.append("Skills: " + "; ".join(skills))
+    if goals:
+        parts.append("Goals: " + "; ".join(goals))
+    if prefs:
+        parts.append("Prefers: " + "; ".join(prefs))
+
+    summary = ". ".join(parts) + f". (Vault: {stats['total_memories']} memories, {stats['total_conversations']} conversations)"
+    return summary
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 async def main():
@@ -331,7 +357,7 @@ async def main():
                 server_name="pam-memory",
                 server_version="0.1.0",
                 capabilities=server.get_capabilities(
-                    notification_options=None,
+                    notification_options=NotificationOptions(),
                     experimental_capabilities={},
                 ),
             ),
