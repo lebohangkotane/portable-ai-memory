@@ -6,7 +6,10 @@ conversation messages using heuristic rules and optional LLM-based extraction.
 
 from __future__ import annotations
 
+import json
+import os
 import re
+import warnings
 from datetime import datetime
 
 from pam.vault.models import (
@@ -156,7 +159,7 @@ def _build_memory_content(memory_type: MemoryType, match: str, original: str) ->
     return f"{p}{match}"
 
 
-# --- LLM-based extraction (optional, requires API key) ---
+# ── LLM-based extraction (optional, requires API key) ────────────────────────
 
 LLM_EXTRACTION_PROMPT = """Analyze the following conversation and extract structured memories about the user.
 For each memory, identify:
@@ -230,3 +233,70 @@ def parse_llm_extraction_response(
         )
 
     return memories
+
+
+# ── LLM extraction callable ───────────────────────────────────────────────────
+
+class LLMExtractionUnavailable(Exception):
+    """Raised when LLM extraction cannot proceed (missing key or package)."""
+
+
+def extract_memories_llm_sync(
+    conversation: Conversation,
+    api_key: str | None = None,
+    model: str = "claude-haiku-4-5-20251001",
+) -> list[Memory]:
+    """Extract memories using Claude Haiku via the Anthropic API.
+
+    Returns an empty list (never raises) on failure so callers can safely
+    fall back to heuristic extraction.
+
+    Requires either the ``api_key`` argument or ``ANTHROPIC_API_KEY`` env var.
+    Install the package with: pip install anthropic
+    """
+    key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+    if not key:
+        warnings.warn(
+            "LLM extraction skipped: no ANTHROPIC_API_KEY found. "
+            "Set the env var or use --api-key. Falling back to heuristic.",
+            stacklevel=2,
+        )
+        return []
+
+    try:
+        import anthropic  # optional dependency
+    except ImportError:
+        warnings.warn(
+            "LLM extraction skipped: anthropic package not installed. "
+            "Run: pip install anthropic",
+            stacklevel=2,
+        )
+        return []
+
+    try:
+        prompt = build_llm_extraction_prompt(conversation)
+        client = anthropic.Anthropic(api_key=key)
+        response = client.messages.create(
+            model=model,
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = response.content[0].text
+
+        # Extract JSON array from response (model may wrap it in prose)
+        array_match = re.search(r"\[.*\]", text, re.DOTALL)
+        if not array_match:
+            return []
+
+        parsed = json.loads(array_match.group())
+        if not isinstance(parsed, list):
+            return []
+
+        return parse_llm_extraction_response(parsed, conversation)
+
+    except Exception as exc:
+        warnings.warn(
+            f"LLM extraction failed: {exc}. Falling back to heuristic.",
+            stacklevel=2,
+        )
+        return []
